@@ -47,7 +47,7 @@ jobs:
           tar -czf ../pyrefly-lsp-extension.tar.gz *
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pyrefly-lsp-extension
           path: pyrefly-lsp-extension.tar.gz
