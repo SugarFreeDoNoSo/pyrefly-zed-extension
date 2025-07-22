@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # Mantener las dependencias de Rust actualizadas
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+    labels:
+      - "dependencies"
+      - "rust"
+    assignees:
+      - "SugarFreeDoNoSo"
+    reviewers:
+      - "SugarFreeDoNoSo"
+
+  # Mantener las GitHub Actions actualizadas
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    assignees:
+      - "SugarFreeDoNoSo"
+    reviewers:
+      - "SugarFreeDoNoSo"

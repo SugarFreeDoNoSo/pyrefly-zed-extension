@@ -1,0 +1,72 @@
+name: Test and Lint
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Run clippy
+        run: cargo clippy --target wasm32-wasip2 -- -D warnings
+
+      - name: Run tests
+        run: cargo test --lib
+
+      - name: Check if it builds
+        run: cargo build --target wasm32-wasip2 --release
+
+      - name: Verify extension.toml
+        run: |
+          if [ ! -f "extension.toml" ]; then
+            echo "extension.toml not found!"
+            exit 1
+          fi
+
+          # Verificar que los campos requeridos existen
+          grep -q "^id = " extension.toml || (echo "Missing 'id' field in extension.toml" && exit 1)
+          grep -q "^name = " extension.toml || (echo "Missing 'name' field in extension.toml" && exit 1)
+          grep -q "^version = " extension.toml || (echo "Missing 'version' field in extension.toml" && exit 1)
+          grep -q "^schema_version = " extension.toml || (echo "Missing 'schema_version' field in extension.toml" && exit 1)
+
+          echo "extension.toml validation passed!"
+
+      - name: Check file size
+        run: |
+          if [ -f "target/wasm32-wasip2/release/pyrefly_lsp.wasm" ]; then
+            SIZE=$(stat -c%s "target/wasm32-wasip2/release/pyrefly_lsp.wasm" 2>/dev/null || stat -f%z "target/wasm32-wasip2/release/pyrefly_lsp.wasm")
+            echo "WASM file size: $SIZE bytes"
+            # Advertir si el archivo es muy grande (> 5MB)
+            if [ $SIZE -gt 5242880 ]; then
+              echo "::warning::WASM file is larger than 5MB ($SIZE bytes)"
+            fi
+          fi

@@ -1,0 +1,77 @@
+name: Build Extension
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build extension
+        run: cargo build --target wasm32-wasip2 --release
+
+      - name: Create extension package
+        run: |
+          mkdir -p dist
+          cp target/wasm32-wasip2/release/pyrefly_lsp.wasm dist/
+          cp extension.toml dist/
+          cp README.md dist/
+          cp LICENSE dist/
+          cd dist
+          tar -czf ../pyrefly-lsp-extension.tar.gz *
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: pyrefly-lsp-extension
+          path: pyrefly-lsp-extension.tar.gz
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pyrefly-lsp-extension
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pyrefly-lsp-extension.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

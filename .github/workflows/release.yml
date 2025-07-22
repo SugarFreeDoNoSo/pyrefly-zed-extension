@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build extension
+        run: cargo build --target wasm32-wasip2 --release
+
+      - name: Create extension package
+        run: |
+          mkdir -p dist
+          cp target/wasm32-wasip2/release/pyrefly_lsp.wasm dist/
+          cp extension.toml dist/
+          cp README.md dist/
+          cp LICENSE dist/
+
+          # Crear el archivo tar.gz para la extensión
+          cd dist
+          tar -czf ../pyrefly-lsp-${{ github.ref_name }}.tar.gz *
+          cd ..
+
+          # También crear un zip para mayor compatibilidad
+          cd dist
+          zip -r ../pyrefly-lsp-${{ github.ref_name }}.zip *
+          cd ..
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## Cambios en ${{ github.ref_name }}" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Características" >> CHANGELOG.md
+          echo "- Integración de Pyrefly LSP con Zed" >> CHANGELOG.md
+          echo "- Verificación de tipos en tiempo real" >> CHANGELOG.md
+          echo "- Soporte completo para características del LSP" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Instalación" >> CHANGELOG.md
+          echo "1. Descarga \`pyrefly-lsp-${{ github.ref_name }}.tar.gz\`" >> CHANGELOG.md
+          echo "2. En Zed, abre la paleta de comandos y ejecuta \`zed: extensions\`" >> CHANGELOG.md
+          echo "3. Click en 'Install Dev Extension' y selecciona el archivo descargado" >> CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            pyrefly-lsp-${{ github.ref_name }}.tar.gz
+            pyrefly-lsp-${{ github.ref_name }}.zip
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: pyrefly-lsp-${{ github.ref_name }}
+          path: |
+            pyrefly-lsp-${{ github.ref_name }}.tar.gz
+            pyrefly-lsp-${{ github.ref_name }}.zip
+          retention-days: 30
