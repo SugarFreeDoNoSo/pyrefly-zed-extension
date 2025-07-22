@@ -1,0 +1,4 @@
+name = "Python"
+language_servers = ["pyrefly"]
+grammar = "python"
+path_suffixes = ["py", "pyi"]

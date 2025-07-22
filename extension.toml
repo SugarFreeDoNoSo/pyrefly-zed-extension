@@ -1,0 +1,10 @@
+id = "pyrefly-lsp"
+name = "Pyrefly LSP"
+version = "0.0.1"
+schema_version = 1
+authors = ["Matias Donoso <matias.donoso.q@gmail.com>"]
+description = "Agrega soporte para Pyrefly LSP en Python"
+repository = "https://github.com/SugarFreeDoNoSo/pyrefly-zed-extension"
+
+[language_servers.pyrefly]
+name = "Pyrefly"
