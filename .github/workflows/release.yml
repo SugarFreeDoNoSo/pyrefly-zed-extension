@@ -68,7 +68,7 @@ jobs:
           echo "3. Click en 'Install Dev Extension' y selecciona el archivo descargado" >> CHANGELOG.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             pyrefly-lsp-${{ github.ref_name }}.tar.gz
